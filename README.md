@@ -1,54 +1,134 @@
-# TanStack Chat Template
+# chatFGC
 
-![TanStack Starter Preview](tanstack-starter-preview.jpg)
+A modern chat application built with TanStack Router and custom AI integration, featuring a clean and responsive interface with real-time streaming responses.
 
-A modern chat template built with TanStack Router and Claude AI integration features a clean and responsive interface.
+**🚀 Live Demo:** [Add your deployment URL here]
 
-**⚡ View demo:** [https://tanstack-starter.netlify.app/](https://tanstack-starter.netlify.app/)
+## 📋 Overview
+
+chatFGC is a fully-featured chat application that has been migrated from Anthropic Claude to a custom chatbot API. It provides a seamless conversational experience with streaming responses, markdown rendering, and conversation management.
+
+## ✨ Key Features
+
+- **🤖 Custom AI Integration**: Compatible with OpenAI, Anthropic, and other chat APIs
+- **📝 Rich Markdown Rendering**: Syntax highlighting and structured content
+- **🎯 Customizable System Prompts**: Tailor AI behavior for specific use cases
+- **🔄 Real-time Streaming**: Smooth typing animation for responses
+- **💬 Conversation Management**: Save, organize, and search chat history
+- **🎨 Modern UI**: Clean, responsive design with Tailwind CSS
+- **🔐 Secure API Integration**: Server-side API key management
+
+## 🚀 Quick Start
+
+Get chatFGC running in minutes:
+
+1. **Clone and install**
+   ```bash
+   git clone <your-repo-url>
+   cd chatFGC
+   bun install  # or npm install
+   ```
+
+2. **Configure your API**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API credentials
+   ```
+
+3. **Start development**
+   ```bash
+   bun run dev  # or npm run dev
+   ```
+
+4. **Open** [http://localhost:3000](http://localhost:3000) and start chatting!
 
 ## Table of Contents
-- [Deploy to Netlify](#deploy-to-netlify)
-- [Features](#features)
-  - [AI Capabilities](#ai-capabilities)
-  - [User Experience](#user-experience)
-- [Project Structure](#project-structure)
-  - [Key Directories](#key-directories)
-- [Architecture](#architecture)
-  - [Tech Stack](#tech-stack)
-  - [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-  - [Local Setup](#local-setup)
-  - [Local Setup with Netlify Dev](#local-setup-with-netlify-dev-recommended)
-  - [Troubleshooting](#troubleshooting)
-  - [Building For Production](#building-for-production)
-- [Styling](#styling)
-- [Error Monitoring](#error-monitoring)
-- [Environment Configuration](#environment-configuration)
-  - [Anthropic API Key](#anthropic-api-key)
-    - [For Local Development](#for-local-development)
-    - [For Netlify Deployment with AI Gateway](#for-netlify-deployment-with-ai-gateway)
-    - [Using Your Own Anthropic API Key in Production](#using-your-own-anthropic-api-key-in-production)
-  - [Convex Configuration (Optional)](#convex-configuration-optional)
-- [Routing](#routing)
-  - [Adding A Route](#adding-a-route)
-  - [Adding Links](#adding-links)
-  - [Using A Layout](#using-a-layout)
-- [Data Fetching](#data-fetching)
-- [State Management](#state-management)
-- [Learn More](#learn-more)
+- [chatFGC](#chatfgc)
+  - [📋 Overview](#-overview)
+  - [✨ Key Features](#-key-features)
+  - [🚀 Quick Start](#-quick-start)
+  - [Table of Contents](#table-of-contents)
+  - [🚀 Deployment](#-deployment)
+    - [Deploy to Netlify](#deploy-to-netlify)
+    - [Environment Variables for Production](#environment-variables-for-production)
+  - [📝 Migration Notes](#-migration-notes)
+    - [What Changed](#what-changed)
+    - [API Integration Details](#api-integration-details)
+  - [Features](#features)
+    - [AI Capabilities](#ai-capabilities)
+    - [User Experience](#user-experience)
+  - [Architecture](#architecture)
+    - [Tech Stack](#tech-stack)
+    - [Prerequisites](#prerequisites)
+  - [📁 Project Structure](#-project-structure)
+    - [Key Directories](#key-directories)
+  - [⚙️ Getting Started](#️-getting-started)
+    - [Local Setup](#local-setup)
+    - [Local Setup with Netlify Dev (Recommended)](#local-setup-with-netlify-dev-recommended)
+    - [Troubleshooting](#troubleshooting)
+    - [Building For Production](#building-for-production)
+  - [🎨 Styling](#-styling)
+  - [📊 Error Monitoring](#-error-monitoring)
+  - [🔧 Environment Configuration](#-environment-configuration)
+    - [Custom Chat API Configuration](#custom-chat-api-configuration)
+      - [For Local Development](#for-local-development)
+      - [API Configuration Options](#api-configuration-options)
+      - [Supported API Formats](#supported-api-formats)
+      - [Using Different API Providers](#using-different-api-providers)
+    - [Convex Configuration (Optional)](#convex-configuration-optional)
+  - [🛣️ Routing](#️-routing)
+    - [Adding A Route](#adding-a-route)
+    - [Adding Links](#adding-links)
+    - [Using A Layout](#using-a-layout)
+  - [📥 Data Fetching](#-data-fetching)
+  - [💾 State Management](#-state-management)
+  - [📚 Documentation](#-documentation)
+    - [API Documentation](#api-documentation)
+    - [Development Documentation](#development-documentation)
+    - [Configuration Files](#configuration-files)
+  - [🔄 Changelog](#-changelog)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
+  - [🔗 Related Resources](#-related-resources)
+  - [🆘 Support](#-support)
 
-## Deploy to Netlify
+## 🚀 Deployment
+
+### Deploy to Netlify
 
 Want to deploy immediately? Click this button
 
-[![Deploy to Netlify Button](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/netlify-templates/tanstack-template)
+[![Deploy to Netlify Button](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=<your-repo-url>)
 
-Clicking this button will create a new repo for you that looks exactly like this one, and sets that repo up immediately for deployment on Netlify.
+### Environment Variables for Production
+
+When deploying, make sure to set these environment variables:
+- `CHAT_API_URL`: Your chat API endpoint
+- `CHAT_API_KEY`: Your API authentication key
+
+## 📝 Migration Notes
+
+chatFGC was migrated from a TanStack Chat template with the following key changes:
+
+### What Changed
+- **API Integration**: Migrated from Anthropic Claude to custom chatbot API
+- **Branding**: Updated from "TanStack Chat" to "chatFGC"
+- **UI Cleanup**: Removed Netlify notifications and debug tools
+- **Configuration**: Fixed TanStack Start setup issues
+
+### API Integration Details
+The application now uses a custom API with these characteristics:
+- **Endpoint**: OpenAI-compatible `/api/v1/chat/completions`
+- **Authentication**: Bearer token
+- **Streaming**: Server-Sent Events format
+- **Request Format**: Standard OpenAI structure with custom extensions
+
+For complete migration details, see the [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
 ### AI Capabilities
-- 🤖 Powered by Claude 3.5 Sonnet 
+- 🤖 Custom AI API integration (compatible with OpenAI, Anthropic, and other chat APIs)
 - 📝 Rich markdown formatting with syntax highlighting
 - 🎯 Customizable system prompts for tailored AI behavior
 - 🔄 Real-time message updates and streaming responses
@@ -67,29 +147,42 @@ Clicking this button will create a new repo for you that looks exactly like this
 - **State Management**: TanStack Store
 - **Database**: Convex (optional)
 - **Styling**: Tailwind CSS 4
-- **AI Integration**: Anthropic's Claude API
+- **AI Integration**: Custom API (compatible with OpenAI, Anthropic, and other chat APIs)
 - **Build Tool**: Vite 6 with Vinxi
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v20.9+
 - (optional) [nvm](https://github.com/nvm-sh/nvm) for Node version management
-- [Anthropic Claude API](https://www.anthropic.com/api)
+- Custom Chat API endpoint (OpenAI, Anthropic, or compatible API)
 - (optional) [Convex Account](https://dashboard.convex.dev/signup) for database storage
 
-## Project Structure
+## 📁 Project Structure
 
 The project follows a modular structure for better organization and maintainability:
 
 ```
-tanstack-template/
+chatFGC/
+├── CHANGELOG.md         # Detailed changelog of all changes
 ├── convex/              # Convex database schema and functions (optional)
 ├── public/              # Static assets
 ├── src/
 │   ├── components/      # Reusable UI components
+│   │   ├── ChatInput.tsx
+│   │   ├── ChatMessage.tsx
+│   │   ├── LoadingIndicator.tsx
+│   │   ├── SettingsDialog.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── TopBanner.tsx
+│   │   └── WelcomeScreen.tsx
+│   ├── docs/            # Documentation files
+│   │   └── openapi.json  # API specification
 │   ├── routes/          # TanStack Router route definitions
+│   │   ├── __root.tsx   # Root layout and configuration
+│   │   └── index.tsx    # Main chat interface
 │   ├── store/           # TanStack Store state management
 │   ├── utils/           # Utility functions and helpers
+│   │   └── ai.ts        # Custom API integration
 │   ├── api.ts           # API client configuration
 │   ├── client.tsx       # Client-side entry point
 │   ├── convex.tsx       # Convex client configuration
@@ -97,8 +190,9 @@ tanstack-template/
 │   ├── sentry.ts        # Sentry error monitoring setup
 │   ├── ssr.tsx          # Server-side rendering setup
 │   └── styles.css       # Global styles
+├── .env                 # Environment variables (create from .env.example)
 ├── .env.example         # Example environment variables
-├── app.config.ts        # Application configuration
+├── app.config.ts        # TanStack Start application configuration
 ├── package.json         # Project dependencies and scripts
 ├── postcss.config.ts    # PostCSS configuration for Tailwind
 ├── tsconfig.json        # TypeScript configuration
@@ -112,7 +206,7 @@ tanstack-template/
 - **src/store/**: Contains state management logic using TanStack Store
 - **convex/**: Contains Convex database schema and functions (if using Convex for persistence)
 
-## Getting Started
+## ⚙️ Getting Started
 
 ### Local Setup
 
@@ -120,13 +214,13 @@ Follow these steps to set up and run the project locally:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/netlify-templates/tanstack-template.git
-   cd tanstack-template
+   git clone <your-repo-url>
+   cd chatFGC
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   bun install  # or npm install
    ```
 
 3. **Set up environment variables**
@@ -135,13 +229,15 @@ Follow these steps to set up and run the project locally:
    ```
    
    Then edit the `.env` file with your credentials:
-   - Required: Add your Anthropic API key (`ANTHROPIC_API_KEY`)
+   - Required: Add your chat API URL (`CHAT_API_URL`)
+   - Required: Add your chat API key (`CHAT_API_KEY`)
+   - Optional: Add custom headers for your API (`CHAT_API_HEADERS`)
    - Optional: Add Convex URL if using database features (`VITE_CONVEX_URL`)
    - Optional: Add Sentry credentials for error monitoring (`VITE_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`)
 
 4. **Start the development server**
    ```bash
-   npm run dev
+   bun run dev  # or npm run dev
    ```
    
    The application should now be running at [http://localhost:3000](http://localhost:3000)
@@ -183,7 +279,7 @@ You can also use [Netlify Dev](https://www.netlify.com/products/dev/) to run you
   nvm use 20.9
   ```
 
-- **API Key Issues**: If you encounter errors related to the Anthropic API, verify that your API key is correctly set in the `.env` file and that you have sufficient credits in your Anthropic account.
+- **API Key Issues**: If you encounter errors related to your chat API, verify that your API URL and key are correctly set in the `.env` file and that your API endpoint is accessible.
 
 - **Port Conflicts**: If port 3000 is already in use, the development server will automatically try to use the next available port. Check your terminal output for the correct URL.
 
@@ -198,20 +294,20 @@ You can also use [Netlify Dev](https://www.netlify.com/products/dev/) to run you
 To build this application for production:
 
 ```bash
-npm run build
+bun run build  # or npm run build
 ```
 
 To preview the production build:
 
 ```bash
-npm run serve
+bun run serve  # or npm run serve
 ```
 
-## Styling
+## 🎨 Styling
 
 This project uses [Tailwind CSS](https://tailwindcss.com/) v4 for styling.
 
-## Error Monitoring
+## 📊 Error Monitoring
 
 This project uses [Sentry](https://sentry.io) for error monitoring and performance tracking. Sentry integration is optional and the project will run normally without Sentry configuration.
 
@@ -227,48 +323,63 @@ SENTRY_AUTH_TOKEN=your-sentry-auth-token-here
 
 If the Sentry environment variables are not defined, the application will run without error monitoring.
 
-## Environment Configuration
+## 🔧 Environment Configuration
 
 **Important**: Never commit your `.env` file to version control as it contains sensitive information. The `.env` file is already included in the project's `.gitignore` file to prevent accidental commits.
 
-### Anthropic API Key
+### Custom Chat API Configuration
 
-You can generate and manage your Anthropic API keys through the [Anthropic Console](https://console.anthropic.com/login).
+This template is designed to work with any chat API that follows standard OpenAI-compatible formats, including OpenAI, Anthropic, and other providers.
 
 #### For Local Development
 ```
 # .env file
-ANTHROPIC_API_KEY=your_anthropic_api_key
+CHAT_API_URL=https://api.openai.com/v1/chat/completions
+CHAT_API_KEY=your_api_key_here
 ```
 
-**Important:** Use `ANTHROPIC_API_KEY` (without the `VITE_` prefix) to ensure the API key remains server-side only and is not exposed in the client-side bundle.
+**Important:** Use `CHAT_API_URL` and `CHAT_API_KEY` (without the `VITE_` prefix) to ensure the API credentials remain server-side only and are not exposed in the client-side bundle.
 
-#### For Netlify Deployment with AI Gateway
+#### API Configuration Options
 
-This template works seamlessly with [Netlify AI Gateway](https://docs.netlify.com/build/ai-gateway/overview/), which automatically proxies your Anthropic API requests with built-in security, usage analytics, and rate limiting.
+- **CHAT_API_URL**: Your chat API endpoint (required)
+- **CHAT_API_KEY**: Your API key for authentication (required)
+- **CHAT_API_HEADERS**: Additional headers (optional, comma-separated key:value pairs)
 
-**How it works:**
-1. Deploy to Netlify
-2. AI Gateway automatically handles all requests to `api.anthropic.com`
-3. No API key or additional configuration needed
+Example with custom headers:
+```
+CHAT_API_HEADERS=Authorization:Bearer token,X-Custom-Header:value
+```
 
-The template works out-of-the-box with Netlify AI Gateway when deployed.
+#### Supported API Formats
 
-**Learn more:** [Netlify AI Gateway Documentation](https://docs.netlify.com/build/ai-gateway/overview/)
+The chatbot is designed to work with various API response formats:
 
-#### Using Your Own Anthropic API Key in Production
+1. **OpenAI-compatible APIs**: Handles `choices[0].delta.content` for streaming
+2. **Simple APIs**: Handles direct `content` or `text` fields
+3. **Server-Sent Events (SSE)**: Processes streaming data in SSE format
+4. **Non-streaming responses**: Automatically converts to streaming format
 
-If you prefer to use your own Anthropic API key instead of Netlify AI Gateway:
+#### Using Different API Providers
 
-1. Go to your Netlify site dashboard
-2. Navigate to **Site configuration > Environment variables**
-3. Add your API key:
-   ```
-   ANTHROPIC_API_KEY=your_anthropic_api_key
-   ```
-4. Redeploy your site
+**OpenAI:**
+```
+CHAT_API_URL=https://api.openai.com/v1/chat/completions
+CHAT_API_KEY=sk-your-openai-key
+```
 
-The application will use your API key directly instead of routing through AI Gateway. Note that you'll lose the built-in analytics and rate limiting features that AI Gateway provides.
+**Anthropic:**
+```
+CHAT_API_URL=https://api.anthropic.com/v1/messages
+CHAT_API_KEY=sk-ant-your-anthropic-key
+```
+
+**Custom API:**
+```
+CHAT_API_URL=https://your-custom-api.com/chat
+CHAT_API_KEY=your-custom-key
+CHAT_API_HEADERS=X-API-Version:v1,X-Custom-Header:value
+```
 
 ### Convex Configuration (Optional)
 
@@ -284,7 +395,8 @@ For persistent storage of conversations:
 VITE_CONVEX_URL=your_convex_deployment_url
 ```
 
-## Routing
+## 🛣️ Routing
+
 This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
 
 ### Adding A Route
@@ -321,7 +433,6 @@ Here is an example layout that includes a header:
 
 ```tsx
 import { createRootRoute, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 
 import { Link } from "@tanstack/react-router";
 
@@ -335,17 +446,14 @@ export const Route = createRootRoute({
         </nav>
       </header>
       <Outlet />
-      <TanStackRouterDevtools />
     </>
   ),
 })
 ```
 
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
-
 More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
 
-## Data Fetching
+## 📥 Data Fetching
 
 There are multiple ways to fetch data in your application. You can use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
 
@@ -378,7 +486,7 @@ const peopleRoute = createRoute({
 
 Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
 
-## State Management
+## 💾 State Management
 
 This project uses TanStack Store for local state management. The store files are located in the `src/store` directory. For persistent storage, the project can optionally use Convex as a backend database.
 
@@ -433,9 +541,50 @@ function Counter() {
 
 You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
 
-## Learn More
+## 📚 Documentation
 
-- Explore more about deploying with Netlify in the [Netlify documentation](https://docs.netlify.com/).
-- You can learn more about TanStack in the [TanStack documentation](https://tanstack.com).
-- Learn more about integrating AI with Anthropic's Claude API in the [Anthropic API documentation](https://console.anthropic.com/docs).
-- Learn about using Convex for database storage in the [Convex documentation](https://docs.convex.dev/).
+### API Documentation
+- **OpenAPI Specification**: See [`src/docs/openapi.json`](src/docs/openapi.json) for detailed API documentation
+- **Custom API Integration**: See [`src/utils/ai.ts`](src/utils/ai.ts) for implementation details
+
+### Development Documentation
+- **Component Architecture**: UI components are located in [`src/components/`](src/components/)
+- **State Management**: TanStack Store implementation in [`src/store/`](src/store/)
+- **Routing Configuration**: TanStack Router setup in [`src/routes/`](src/routes/)
+
+### Configuration Files
+- **Application Config**: [`app.config.ts`](app.config.ts) - TanStack Start configuration
+- **Build Config**: [`vite.config.js`](vite.config.js) - Vite bundler configuration
+- **TypeScript Config**: [`tsconfig.json`](tsconfig.json) - TypeScript compiler options
+
+## 🔄 Changelog
+
+For a detailed history of all changes made during the migration and development, see [CHANGELOG.md](CHANGELOG.md).
+
+## 🤝 Contributing
+
+When contributing to chatFGC:
+1. Follow the existing code style and patterns
+2. Update documentation for any new features
+3. Add entries to the CHANGELOG.md for significant changes
+4. Test with the custom API integration
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔗 Related Resources
+
+- **TanStack Start**: [Documentation](https://tanstack.com/start)
+- **TanStack Router**: [Documentation](https://tanstack.com/router)
+- **TanStack Store**: [Documentation](https://tanstack.com/store)
+- **Tailwind CSS**: [Documentation](https://tailwindcss.com)
+- **React 19**: [Documentation](https://react.dev)
+
+## 🆘 Support
+
+If you encounter issues:
+1. Check the [Troubleshooting section](#troubleshooting) in this README
+2. Review the [CHANGELOG.md](CHANGELOG.md) for recent changes
+3. Verify your API configuration in the `.env` file
+4. Check browser console and terminal for error messages

@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { Anthropic } from '@anthropic-ai/sdk'
 
 export interface Message {
   id: string
@@ -7,75 +6,26 @@ export interface Message {
   content: string
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are TanStack Chat, an AI assistant using Markdown for clear and structured responses. Format your responses following these guidelines:
+const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. Provide clear, concise, and accurate responses to user questions. Use markdown formatting when appropriate to improve readability.`
 
-1. Use headers for sections:
-   # For main topics
-   ## For subtopics
-   ### For subsections
-
-2. For lists and steps:
-   - Use bullet points for unordered lists
-   - Number steps when sequence matters
-   
-3. For code:
-   - Use inline \`code\` for short snippets
-   - Use triple backticks with language for blocks:
-   \`\`\`python
-   def example():
-       return "like this"
-   \`\`\`
-
-4. For emphasis:
-   - Use **bold** for important points
-   - Use *italics* for emphasis
-   - Use > for important quotes or callouts
-
-5. For structured data:
-   | Use | Tables |
-   |-----|---------|
-   | When | Needed |
-
-6. Break up long responses with:
-   - Clear section headers
-   - Appropriate spacing between sections
-   - Bullet points for better readability
-   - Short, focused paragraphs
-
-7. For technical content:
-   - Always specify language for code blocks
-   - Use inline \`code\` for technical terms
-   - Include example usage where helpful
-
-Keep responses concise and well-structured. Use appropriate Markdown formatting to enhance readability and understanding.`
-
-// Non-streaming implementation
-export const genAIResponse = createServerFn({ method: 'GET', response: 'raw' })
+// Custom API implementation with streaming support
+export const genAIResponse = createServerFn({ method: 'POST', response: 'raw' })
   .validator(
     (d: {
       messages: Array<Message>
       systemPrompt?: { value: string; enabled: boolean }
     }) => d,
   )
-  // .middleware([loggingMiddleware])
   .handler(async ({ data }) => {
-    // Check for API key in environment variables
-    // This should ONLY use server-side environment variables (no VITE_ prefix)
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    // Check for API configuration in environment variables
+    const apiUrl = process.env.CHAT_API_URL
+    const apiKey = process.env.CHAT_API_KEY
 
-    if (!apiKey) {
+    if (!apiUrl) {
       throw new Error(
-        'Missing API key: Please set ANTHROPIC_API_KEY in your environment variables or .env file.'
+        'Missing API URL: Please set CHAT_API_URL in your environment variables or .env file.'
       )
     }
-
-    // Create Anthropic client with proper configuration
-    // Don't set baseURL - Netlify AI Gateway will intercept requests to api.anthropic.com automatically
-    const anthropic = new Anthropic({
-      apiKey,
-      // Add proper timeout to avoid connection issues
-      timeout: 30000 // 30 seconds timeout
-    })
 
     // Filter out error messages and empty messages
     const formattedMessages = data.messages
@@ -100,77 +50,224 @@ export const genAIResponse = createServerFn({ method: 'GET', response: 'raw' })
       ? `${DEFAULT_SYSTEM_PROMPT}\n\n${data.systemPrompt.value}`
       : DEFAULT_SYSTEM_PROMPT
 
-    // Debug log to verify prompt layering
-    console.log('System Prompt Configuration:', {
-      hasCustomPrompt: data.systemPrompt?.enabled,
-      customPromptValue: data.systemPrompt?.value,
-      finalPrompt: systemPrompt,
-    })
+    // Prepare request headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    // Add API key if provided
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    // Parse additional headers from environment if provided
+    const additionalHeaders = process.env.CHAT_API_HEADERS
+    if (additionalHeaders) {
+      try {
+        const headerPairs = additionalHeaders.split(',')
+        for (const pair of headerPairs) {
+          const [key, value] = pair.split(':')
+          if (key && value) {
+            headers[key.trim()] = value.trim()
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse CHAT_API_HEADERS:', error)
+      }
+    }
+
+    // Prepare request body - format based on your API's OpenAPI spec
+    const requestBody = {
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        ...formattedMessages,
+      ],
+      stream: true, // Enable streaming
+      max_tokens: 4096,
+      temperature: 0.7,
+      // Your API supports additional optional parameters
+      instruction_override: data.systemPrompt?.enabled ? data.systemPrompt.value : undefined,
+      include_functions_info: false,
+      include_retrieval_info: false,
+      include_guardrails_info: false,
+      provide_citations: false,
+      stream_options: {
+        include_usage: true
+      }
+    }
 
     try {
-      const stream = await anthropic.messages.stream({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: formattedMessages,
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
       })
 
-      // Transform the Anthropic stream to match the expected client format
-      // The client reads chunks and expects each chunk to contain one complete JSON object
-      const encoder = new TextEncoder()
-      const transformedStream = new ReadableStream({
-        async start(controller) {
-          try {
-            for await (const event of stream) {
-              // Only send content_block_delta events with text
-              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-                const chunk = {
-                  type: 'content_block_delta',
-                  delta: {
-                    type: 'text_delta',
-                    text: event.delta.text,
-                  },
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error Response:', errorText)
+        
+        let errorMessage = 'Failed to get AI response'
+        if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please check your API key.'
+        } else if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again in a moment.'
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.'
+        }
+
+        return new Response(JSON.stringify({
+          error: errorMessage,
+          status: response.status,
+          details: errorText
+        }), {
+          status: response.status,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Handle streaming response
+      if (response.body) {
+        const encoder = new TextEncoder()
+        const transformedStream = new ReadableStream({
+          async start(controller) {
+            try {
+              const reader = response.body!.getReader()
+              const decoder = new TextDecoder()
+              let buffer = ''
+
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                buffer += decoder.decode(value, { stream: true })
+                
+                // Handle different streaming formats
+                // This assumes Server-Sent Events (SSE) format, adjust as needed for your API
+                const lines = buffer.split('\n')
+                buffer = lines.pop() || ''
+
+                for (const line of lines) {
+                  if (line.trim() === '') continue
+                  
+                  // Handle SSE format: data: {...}
+                  if (line.startsWith('data: ')) {
+                    const data = line.slice(6)
+                    if (data === '[DONE]') {
+                      controller.close()
+                      return
+                    }
+                    
+                    try {
+                      const parsed = JSON.parse(data)
+                      
+                      // Transform to match expected client format
+                      // Adjust this based on your API's response structure
+                      let textContent = ''
+                      
+                      // Your API uses OpenAI-compatible format: choices[index].delta.content
+                      if (parsed.choices?.[0]?.delta?.content) {
+                        // Your API's format (matches OpenAI spec)
+                        textContent = parsed.choices[0].delta.content
+                      } else if (parsed.content) {
+                        // Fallback for simple format
+                        textContent = parsed.content
+                      } else if (parsed.text) {
+                        // Another fallback format
+                        textContent = parsed.text
+                      }
+                      
+                      if (textContent) {
+                        const chunk = {
+                          type: 'content_block_delta',
+                          delta: {
+                            type: 'text_delta',
+                            text: textContent,
+                          },
+                        }
+                        controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
+                      }
+                    } catch (e) {
+                      console.warn('Failed to parse streaming data:', data, e)
+                    }
+                  }
                 }
-                // Encode each JSON object as a separate chunk
-                // This ensures the decoder can parse each chunk independently
-                controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
               }
+              
+              controller.close()
+            } catch (error) {
+              console.error('Stream processing error:', error)
+              controller.error(error)
             }
-            controller.close()
-          } catch (error) {
-            console.error('Stream error:', error)
-            controller.error(error)
-          }
-        },
-      })
+          },
+        })
 
-      return new Response(transformedStream, {
-        headers: {
-          'Content-Type': 'application/x-ndjson',
-        },
-      })
+        return new Response(transformedStream, {
+          headers: {
+            'Content-Type': 'application/x-ndjson',
+          },
+        })
+      } else {
+        // Fallback for non-streaming responses
+        const responseData = await response.json()
+        
+       // Extract content from response - your API uses OpenAI-compatible format
+       let content = ''
+       if (responseData.choices?.[0]?.message?.content) {
+         // Your API's non-streaming format (matches OpenAI spec)
+         content = responseData.choices[0].message.content
+       } else if (responseData.content) {
+         // Fallback for simple format
+         content = responseData.content
+       } else if (responseData.response) {
+         // Another fallback format
+         content = responseData.response
+       } else {
+         content = JSON.stringify(responseData)
+       }
+
+        // Convert single response to streaming format for consistency
+        const encoder = new TextEncoder()
+        const chunk = {
+          type: 'content_block_delta',
+          delta: {
+            type: 'text_delta',
+            text: content,
+          },
+        }
+
+        const transformedStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
+            controller.close()
+          },
+        })
+
+        return new Response(transformedStream, {
+          headers: {
+            'Content-Type': 'application/x-ndjson',
+          },
+        })
+      }
     } catch (error) {
       console.error('Error in genAIResponse:', error)
       
-      // Error handling with specific messages
       let errorMessage = 'Failed to get AI response'
       let statusCode = 500
       
       if (error instanceof Error) {
-        if (error.message.includes('rate limit')) {
-          errorMessage = 'Rate limit exceeded. Please try again in a moment.'
-        } else if (error.message.includes('Connection error') || error.name === 'APIConnectionError') {
-          errorMessage = 'Connection to Anthropic API failed. Please check your internet connection and API key.'
-          statusCode = 503 // Service Unavailable
-        } else if (error.message.includes('authentication')) {
-          errorMessage = 'Authentication failed. Please check your Anthropic API key.'
-          statusCode = 401 // Unauthorized
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and API URL.'
+          statusCode = 503
         } else {
           errorMessage = error.message
         }
       }
       
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: errorMessage,
         details: error instanceof Error ? error.name : undefined
       }), {
@@ -178,4 +275,4 @@ export const genAIResponse = createServerFn({ method: 'GET', response: 'raw' })
         headers: { 'Content-Type': 'application/json' },
       })
     }
-  }) 
+  })

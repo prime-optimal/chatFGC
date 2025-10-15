@@ -4,7 +4,6 @@ import {
   HeadContent,
   Scripts,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { ConvexClientProvider } from '../convex'
 
 import appCss from '../styles.css?url'
@@ -20,7 +19,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Chat Starter',
+        title: 'chatFGC',
       },
     ],
     links: [
@@ -34,7 +33,6 @@ export const Route = createRootRoute({
   component: () => (
     <RootDocument>
       <Outlet />
-      <TanStackRouterDevtools />
     </RootDocument>
   ),
 })
