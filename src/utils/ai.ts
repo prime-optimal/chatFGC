@@ -17,6 +17,64 @@ export const genAIResponse = createServerFn({ method: 'POST', response: 'raw' })
     }) => d,
   )
   .handler(async ({ data }) => {
+    const isSocketTermination = (error: unknown): boolean => {
+      if (!error) {
+        return false
+      }
+
+      if (error instanceof Error) {
+        const lower = `${error.message} ${error.name}`.toLowerCase()
+        if (lower.includes('und_err_socket') || lower.includes('socket') || lower.includes('terminated')) {
+          return true
+        }
+
+        const anyError = error as { code?: string; cause?: unknown }
+        if (anyError.code === 'UND_ERR_SOCKET') {
+          return true
+        }
+
+        if (anyError.cause && isSocketTermination(anyError.cause)) {
+          return true
+        }
+      }
+
+      if (typeof error === 'object' && 'originalError' in (error as Record<string, unknown>)) {
+        return isSocketTermination((error as { originalError?: unknown }).originalError)
+      }
+
+      return false
+    }
+
+    const mapUpstreamError = (error: unknown) => {
+      let errorMessage = 'Failed to get AI response'
+      let statusCode = 500
+      let details: string | undefined
+
+      if (error instanceof Error) {
+        details = error.name
+
+        if (error.name === 'AbortError') {
+          errorMessage = 'Streaming request aborted.'
+          statusCode = 499
+        } else if (error.message.includes('interrupted') || error.message.includes('terminated')) {
+          errorMessage = 'Streaming connection interrupted. Please try again.'
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and API URL.'
+          statusCode = 503
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      return {
+        statusCode,
+        payload: {
+          error: errorMessage,
+          details,
+        },
+      }
+    }
+
     // Check for API configuration in environment variables
     const apiUrl = process.env.CHAT_API_URL
     const apiKey = process.env.CHAT_API_KEY
@@ -99,109 +157,163 @@ export const genAIResponse = createServerFn({ method: 'POST', response: 'raw' })
       }
     }
 
+    const abortController = new AbortController()
     try {
-      const response = await fetch(apiUrl, {
+      const upstream = await fetch(apiUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
+        signal: abortController.signal,
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
+      if (!upstream.ok) {
+        const errorText = await upstream.text()
         console.error('API Error Response:', errorText)
-        
+
         let errorMessage = 'Failed to get AI response'
-        if (response.status === 401) {
+        if (upstream.status === 401) {
           errorMessage = 'Authentication failed. Please check your API key.'
-        } else if (response.status === 429) {
+        } else if (upstream.status === 429) {
           errorMessage = 'Rate limit exceeded. Please try again in a moment.'
-        } else if (response.status >= 500) {
+        } else if (upstream.status >= 500) {
           errorMessage = 'Server error. Please try again later.'
         }
 
-        return new Response(JSON.stringify({
-          error: errorMessage,
-          status: response.status,
-          details: errorText
-        }), {
-          status: response.status,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return new Response(
+          JSON.stringify({
+            error: errorMessage,
+            status: upstream.status,
+            details: errorText,
+          }),
+          {
+            status: upstream.status,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
       }
 
       // Handle streaming response
-      if (response.body) {
+      if (upstream.body) {
         const encoder = new TextEncoder()
+        const reader = upstream.body.getReader()
+        const decoder = new TextDecoder()
+
         const transformedStream = new ReadableStream({
           async start(controller) {
-            try {
-              const reader = response.body!.getReader()
-              const decoder = new TextDecoder()
-              let buffer = ''
+            let buffer = ''
+            let streamClosed = false
 
+            const emitText = (textContent: string) => {
+              if (!textContent) {
+                return
+              }
+
+              const chunk = {
+                type: 'content_block_delta',
+                delta: {
+                  type: 'text_delta',
+                  text: textContent,
+                },
+              }
+
+              controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
+            }
+
+            const emitErrorChunk = (message: string) => {
+              const chunk = {
+                type: 'content_block_delta',
+                delta: {
+                  type: 'text_delta',
+                  text: message,
+                },
+              }
+
+              controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
+            }
+
+            try {
               while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
+                const { done, value } = await reader.read().catch((readError) => {
+                  const mapped = mapUpstreamError(readError)
+                  throw Object.assign(mapped, { originalError: readError })
+                })
+                if (done) {
+                  break
+                }
 
                 buffer += decoder.decode(value, { stream: true })
-                
-                // Handle different streaming formats
-                // This assumes Server-Sent Events (SSE) format, adjust as needed for your API
+
                 const lines = buffer.split('\n')
                 buffer = lines.pop() || ''
 
                 for (const line of lines) {
                   if (line.trim() === '') continue
-                  
-                  // Handle SSE format: data: {...}
+
                   if (line.startsWith('data: ')) {
-                    const data = line.slice(6)
-                    if (data === '[DONE]') {
-                      controller.close()
-                      return
+                    const dataLine = line.slice(6)
+
+                    if (dataLine === '[DONE]') {
+                      streamClosed = true
+                      break
                     }
-                    
+
                     try {
-                      const parsed = JSON.parse(data)
-                      
-                      // Transform to match expected client format
-                      // Adjust this based on your API's response structure
+                      const parsed = JSON.parse(dataLine)
+
                       let textContent = ''
-                      
-                      // Your API uses OpenAI-compatible format: choices[index].delta.content
                       if (parsed.choices?.[0]?.delta?.content) {
-                        // Your API's format (matches OpenAI spec)
                         textContent = parsed.choices[0].delta.content
-                      } else if (parsed.content) {
-                        // Fallback for simple format
+                      } else if (typeof parsed.content === 'string') {
                         textContent = parsed.content
-                      } else if (parsed.text) {
-                        // Another fallback format
+                      } else if (typeof parsed.text === 'string') {
                         textContent = parsed.text
                       }
-                      
-                      if (textContent) {
-                        const chunk = {
-                          type: 'content_block_delta',
-                          delta: {
-                            type: 'text_delta',
-                            text: textContent,
-                          },
-                        }
-                        controller.enqueue(encoder.encode(JSON.stringify(chunk) + '\n'))
-                      }
-                    } catch (e) {
-                      console.warn('Failed to parse streaming data:', data, e)
+
+                      emitText(textContent)
+                    } catch (parseError) {
+                      console.warn('Failed to parse streaming data:', dataLine, parseError)
                     }
                   }
                 }
+
+                if (streamClosed) {
+                  break
+                }
               }
-              
-              controller.close()
+
+              if (buffer.trim()) {
+                try {
+                  const parsed = JSON.parse(buffer.startsWith('data: ') ? buffer.slice(6) : buffer)
+                  if (parsed.choices?.[0]?.delta?.content) {
+                    emitText(parsed.choices[0].delta.content)
+                  } else if (typeof parsed.content === 'string') {
+                    emitText(parsed.content)
+                  }
+                } catch {
+                  // Ignore trailing buffer if it's not valid JSON
+                }
+              }
             } catch (error) {
-              console.error('Stream processing error:', error)
-              controller.error(error)
+              if (isSocketTermination(error)) {
+                console.warn('Stream terminated by upstream socket:', error)
+              } else {
+                console.error('Stream processing error:', error)
+                if (!streamClosed) {
+                  const mapped =
+                    typeof error === 'object' && error && 'payload' in error
+                      ? (error as { payload: { error: string } }).payload.error
+                      : mapUpstreamError(error).payload.error
+                  emitErrorChunk(mapped)
+                }
+              }
+            } finally {
+              streamClosed = true
+              controller.close()
             }
+          },
+          cancel() {
+            abortController.abort()
+            reader.cancel().catch(() => {})
           },
         })
 
@@ -212,7 +324,7 @@ export const genAIResponse = createServerFn({ method: 'POST', response: 'raw' })
         })
       } else {
         // Fallback for non-streaming responses
-        const responseData = await response.json()
+        const responseData = await upstream.json()
         
        // Extract content from response - your API uses OpenAI-compatible format
        let content = ''
@@ -253,24 +365,10 @@ export const genAIResponse = createServerFn({ method: 'POST', response: 'raw' })
         })
       }
     } catch (error) {
+      const { statusCode, payload } = mapUpstreamError(error)
       console.error('Error in genAIResponse:', error)
-      
-      let errorMessage = 'Failed to get AI response'
-      let statusCode = 500
-      
-      if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
-          errorMessage = 'Network error. Please check your internet connection and API URL.'
-          statusCode = 503
-        } else {
-          errorMessage = error.message
-        }
-      }
-      
-      return new Response(JSON.stringify({
-        error: errorMessage,
-        details: error instanceof Error ? error.name : undefined
-      }), {
+
+      return new Response(JSON.stringify(payload), {
         status: statusCode,
         headers: { 'Content-Type': 'application/json' },
       })

@@ -10,7 +10,7 @@ import {
   WelcomeScreen
 } from '../components'
 import { useConversations, useAppState, store, actions } from '../store'
-import { genAIResponse, type Message } from '../utils'
+import { genAIResponse, subscribeToSuggestions, type Message } from '../utils'
 
 function Home() {
   const {
@@ -23,7 +23,7 @@ function Home() {
     deleteConversation,
     addMessage,
   } = useConversations()
-  
+
   const { isLoading, setLoading, getActivePrompt } = useAppState()
 
   // Memoize messages to prevent unnecessary re-renders
@@ -36,7 +36,20 @@ function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null)
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([])
+
+  useEffect(() => {
+    if (currentConversationId) {
+      setSuggestedQuestions([])
+      return
+    }
+
+    const unsubscribe = subscribeToSuggestions(setSuggestedQuestions)
+    return () => {
+      unsubscribe()
+    }
+  }, [currentConversationId])
 
   const scrollToBottom = useCallback((smooth: boolean = false) => {
     if (messagesContainerRef.current) {
@@ -100,7 +113,7 @@ function Home() {
         content: '',
       }
       let buffer = '' // Buffer to accumulate partial JSON chunks
-      let pendingTextQueue: string[] = [] // Queue of text chunks to render
+      const pendingTextQueue: string[] = [] // Queue of text chunks to render
       let isRendering = false
 
       // Smooth character-by-character rendering with adaptive speed
@@ -359,6 +372,8 @@ function Home() {
             setInput={setInput}
             handleSubmit={handleSubmit}
             isLoading={isLoading}
+            suggestions={suggestedQuestions}
+            onSuggestionSelected={setInput}
           />
         )}
       </div>

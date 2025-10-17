@@ -2,11 +2,35 @@ import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import rehypeHighlight from 'rehype-highlight'
+import remarkGfm from 'remark-gfm'
+import { defaultSchema } from 'hast-util-sanitize'
+import type { Schema } from 'hast-util-sanitize'
 import type { Message } from '../utils/ai'
 
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
+}
+
+const tableSchema: Schema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    'table',
+    'thead',
+    'tbody',
+    'tfoot',
+    'tr',
+    'th',
+    'td',
+    'caption',
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    table: ['className'],
+    th: ['align', 'colspan', 'rowspan'],
+    td: ['align', 'colspan', 'rowspan'],
+  },
 }
 
 export const ChatMessage = ({ message, isStreaming = false }: ChatMessageProps) => (
@@ -29,10 +53,11 @@ export const ChatMessage = ({ message, isStreaming = false }: ChatMessageProps) 
       )}
       <div className={`flex-1 min-w-0 mr-4 ${isStreaming ? 'streaming-cursor' : ''}`}>
         <ReactMarkdown
-          className="prose dark:prose-invert max-w-none"
+          className="prose dark:prose-invert max-w-none prose-table:my-4 prose-th:border-b prose-td:border-b prose-thead:bg-gray-800/40 prose-tbody:divide-y divide-gray-700 overflow-x-auto"
+          remarkPlugins={[remarkGfm]}
           rehypePlugins={[
             rehypeRaw,
-            rehypeSanitize,
+            [rehypeSanitize, tableSchema],
             rehypeHighlight,
           ]}
         >

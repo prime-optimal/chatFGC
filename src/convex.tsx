@@ -1,19 +1,72 @@
-import type { ReactNode } from 'react';
-import { ConvexProvider, ConvexReactClient } from 'convex/react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import type { ReactNode } from 'react'
 
-// Get the Convex URL from environment variables
-const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+type ConvexProviderComponent = typeof import('./ConvexProviderClient')['default']
 
-// Initialize the Convex client only if URL is provided
-const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
+const ConvexAvailabilityContext = createContext(false)
+
+export function useConvexAvailability() {
+  return useContext(ConvexAvailabilityContext)
+}
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
-  // If no Convex URL is provided, just render the children without the ConvexProvider
-  if (!convex) {
-    console.warn('No Convex URL provided. Skipping Convex integration.');
-    return <>{children}</>;
+  const convexUrl = import.meta.env.VITE_CONVEX_URL
+  const isBrowser = typeof window !== 'undefined'
+  const hasConvexFlag = import.meta.env.VITE_CONVEX_ENABLED === 'true'
+  const stableConvexUrl = typeof convexUrl === 'string' && convexUrl.length > 0
+  const enableConvex = isBrowser && hasConvexFlag && stableConvexUrl
+
+  const availabilityValue = useMemo(() => enableConvex, [enableConvex])
+
+  const [ProviderComponent, setProviderComponent] = useState<ConvexProviderComponent | null>(
+    null,
+  )
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!enableConvex) {
+      setProviderComponent(null)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    import('./ConvexProviderClient')
+      .then((module) => {
+        if (isMounted) {
+          setProviderComponent(() => module.default)
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load Convex provider client:', error)
+        if (isMounted) {
+          setProviderComponent(null)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [enableConvex])
+
+  if (!enableConvex || !ProviderComponent || !convexUrl) {
+    return (
+      <ConvexAvailabilityContext.Provider value={availabilityValue}>
+        {children}
+      </ConvexAvailabilityContext.Provider>
+    )
   }
-  
-  // Otherwise, wrap children with ConvexProvider
-  return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+
+  return (
+    <ConvexAvailabilityContext.Provider value={availabilityValue}>
+      <ProviderComponent url={convexUrl}>{children}</ProviderComponent>
+    </ConvexAvailabilityContext.Provider>
+  )
 }
