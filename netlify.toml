@@ -1,9 +1,9 @@
 [build]
-    command = "bun run build"
+    command = "./scripts/build.sh"
     publish = "dist"
 
 # [functions]
 #    directory = "functions/"
 
 [build.environment]
-    NODE_VERSION = "18"
+    NPM_FLAGS = "--version"

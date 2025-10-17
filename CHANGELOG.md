@@ -2,6 +2,14 @@
 
 All notable changes to chatFGC will be documented in this file.
 
+## [2025-10-17] - Failed package upgrade
+- Got cute and tried to update the Tanstack dependencies and ended ruining the whole thing.  
+- Site wouldn't load, Droid spent an hour trying to fix it to no avail.  
+- Ended up rebasing from the Github repo. 
+
+## [2025-10-16] - Deployment to Netlify
+- Good news: Successfully deployed.  Bad news: Forgot to include API key so it needed to be re-deployed.
+
 ## [2025-10-15] - Initial Migration & Customization
 
 ### 🚀 **Major Changes**

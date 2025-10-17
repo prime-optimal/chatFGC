@@ -132,6 +132,7 @@ For complete migration details, see the [CHANGELOG.md](CHANGELOG.md).
 - 📝 Rich markdown formatting with syntax highlighting
 - 🎯 Customizable system prompts for tailored AI behavior
 - 🔄 Real-time message updates and streaming responses
+- 📕 Trained on a LOT of Smash Bros. data.
 
 ### User Experience
 - 🎨 Modern UI with Tailwind CSS and Lucide icons
