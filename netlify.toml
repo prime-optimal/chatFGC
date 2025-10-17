@@ -1,10 +1,9 @@
 [build]
-    publish = "dist/client"
-    base = "."
     command = "bun run build"
+    publish = "dist"
 
-[build.environment] 
-    NODE_VERSION = "22"
+# [functions]
+#    directory = "functions/"
 
-[functions]
-    directory = "myfunctions"
+[build.environment]
+    NODE_VERSION = "18"
